@@ -16,7 +16,7 @@
         box-shadow: 7px 7px 15px #101010;
         padding: 20px;
     }
-    input, button{
+    input, button, textarea{
         border: 2px solid #f0f;
         border-radius: 20px;
         background-color: white;
@@ -37,8 +37,7 @@
         <input type="submit">
     </form>
     <div>
-        <input text="text" id="texto" size="80%">
-        <button id="copy">Copiar</button>
+    <input type="text" id="texto" size="80%" >
     </div>
     <script type="module">
         var data;
@@ -54,7 +53,6 @@
     const mailEInput = document.getElementById("mailE");
     const contraEInput = document.getElementById("contraE");
     const texto = document.getElementById("texto");
-    const copiar = document.getElementById("copy");
     const firebaseConfig = {
         apiKey: "AIzaSyAiq27-ue3MeC2H4i1nNKyfJNvWCfmScaw",
         authDomain: "didia5.firebaseapp.com",
@@ -142,13 +140,9 @@
         }, 
         { merge: true });
     }
-    function copiar() {
-        navigator.clipboard.writeText(texto.value)
-    }
     texto.addEventListener("input", Itexto)
     registro.addEventListener("submit", crearCuenta);
     iniciars.addEventListener("submit", obtenerUsuario);
-    copiar.addEventListener("click", copiar));
     </script>
 </body>
 </html>
