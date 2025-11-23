@@ -112,7 +112,6 @@
         if (!data || !data.email) {
             return;
         }
-        texto.value = data.nota;
         const mail = data.email;
         const docRef = doc(db, "usuarios", mail);
         if (unsubscribeFromNote) {
@@ -122,7 +121,9 @@
             if (docSnapshot.exists()) {
                 const userData = docSnapshot.data();
                 const nuevaNota = userData.nota || "";
-                texto.value = nuevaNota;
+                if (texto.value !== nuevaNota) {
+                    texto.value = nuevaNota;
+                }
             }
         }, (error) => {
             console.error("Error al escuchar la nota:", error);
@@ -141,10 +142,13 @@
         }, 
         { merge: true });
     }
+    function copiar() {
+        navigator.clipboard.writeText(texto.value)
+    }
     texto.addEventListener("input", Itexto)
     registro.addEventListener("submit", crearCuenta);
     iniciars.addEventListener("submit", obtenerUsuario);
-    copiar.addEventListener("click", navigator.clipboard.writeText(texto.value));
+    copiar.addEventListener("click", copiar));
     </script>
 </body>
 </html>
