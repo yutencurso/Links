@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Mi cuenta</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+<style>
+    body{
+        font-family: 'Open Sans';
+        padding: 30px;
+    }
+    div, form{
+        border-radius: 20px;
+        background-color: white;
+        margin: 10px;
+        box-shadow: 7px 7px 15px #101010;
+        padding: 20px;
+    }
+    input, button{
+        border: 2px solid #f0f;
+        border-radius: 20px;
+        background-color: white;
+    }
+</style>
+</head>
+<body id="body">
+    <h1 id="estado"></h1>
+    <form id="registro"><h2>Crear cuenta</h2>
+        <input type="text" id="nombre" placeholder="tu nombre">
+        <input type="email" id="mail" placeholder="tu email">
+        <input type="password" id="contrasena" placeholder="tu contraseña">
+        <input type="submit">
+    </form>
+    <form id="iniciar"><h2>Iniciar sesión</h2>
+        <input type="email" placeholder="tu email" id="mailE">
+        <input type="password" placeholder="tu contraseña" id="contraE">
+        <input type="submit">
+    </form>
+    <div>
+        <input text="text" id="texto" size="80%">
+        <button id="copy">Copiar</button>
+    </div>
+    <script type="module">
+        var data;
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-analytics.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, addDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+    
+    const registro = document.getElementById("registro")
+    const iniciars = document.getElementById("iniciar")
+    const nombreInput = document.getElementById("nombre");
+    const mailInput = document.getElementById("mail");
+    const contrasenaInput = document.getElementById("contrasena");
+    const mailEInput = document.getElementById("mailE");
+    const contraEInput = document.getElementById("contraE");
+    const texto = document.getElementById("texto");
+    const copiar = document.getElementById("copy");
+    const firebaseConfig = {
+        apiKey: "AIzaSyAiq27-ue3MeC2H4i1nNKyfJNvWCfmScaw",
+        authDomain: "didia5.firebaseapp.com",
+        databaseURL: "https://didia5-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "didia5",
+        storageBucket: "didia5.appspot.com",
+        messagingSenderId: "652405109295",
+        appId: "1:652405109295:web:ec25a722d7eb86cba28cda",
+        measurementId: "G-02DKN2R0BW"
+    };
+    
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function crearCuenta(e) {
+        e.preventDefault();
+        const nombre = nombreInput.value;
+        const mail = mailInput.value;
+        const contrasena = contrasenaInput.value;
+        try {
+        await setDoc(doc(db, "usuarios", mail), {
+            nombre: nombre,
+            contra: contrasena,
+            email: mail,
+            nota: ""
+        });
+        alert("Cuenta creada exitosamente para: " + nombre + ", ahora inicia sesión abajo");
+        } catch (e) {
+            console.error("Error al crear la cuenta: ", e);
+            alert("Hubo un error al crear la cuenta, espera un momento");
+        }
+    }
+
+    async function obtenerUsuario(a) {
+        a.preventDefault();
+        const mail = mailEInput.value;
+        const contra = contraEInput.value;
+        const docRef = doc(db, "usuarios", mail);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            data = docSnap.data();
+            if (data.contra === contra) {
+                alert("Bienvenido " + data.nombre);
+                Ctexto();
+            } else {
+                alert("Contraseña incorrecta");
+            }
+        } else {
+            alert("Usuario no encontrado");
+        }
+    }
+    let unsubscribeFromNote;
+
+    function Ctexto() {
+        if (!data || !data.email) {
+            return;
+        }
+        texto.value = data.nota;
+        const mail = data.email;
+        const docRef = doc(db, "usuarios", mail);
+        if (unsubscribeFromNote) {
+            unsubscribeFromNote();
+        }
+        unsubscribeFromNote = onSnapshot(docRef, (docSnapshot) => {
+            if (docSnapshot.exists()) {
+                const userData = docSnapshot.data();
+                const nuevaNota = userData.nota || "";
+                texto.value = nuevaNota;
+            }
+        }, (error) => {
+            console.error("Error al escuchar la nota:", error);
+        });
+    }
+    async function Itexto() {
+        if (!data || !data.email) {
+            alert("Inicia sesión para continuar");
+            return;
+        }
+        const mail = data.email;
+        const docRef = doc(db, "usuarios", mail)
+        const nota = texto.value;
+        await setDoc(docRef, {
+            nota: nota
+        }, 
+        { merge: true });
+    }
+    texto.addEventListener("input", Itexto)
+    registro.addEventListener("submit", crearCuenta);
+    iniciars.addEventListener("submit", obtenerUsuario);
+    copiar.addEventListener("click", navigator.clipboard.writeText(texto.value));
+    </script>
+</body>
+</html>
