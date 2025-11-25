@@ -21,10 +21,43 @@
         border-radius: 20px;
         background-color: white;
     }
+    #ventana{
+        position: fixed;
+        z-index: 1000;
+        top: 10px;
+        left: 10px;
+    }
+    @media (max-width: 600px) {
+    body {
+        font-size: 1.1em;
+        line-height: 1.6;
+        padding: 10px;
+    }
+    div {
+        width: 100%;
+        margin: 10px 0;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+    input,textarea,button {
+        width: 100%;
+        max-width: 100%;
+        font-size: 1em;
+        padding: 12px;
+        margin-top: 8px;
+        margin-bottom: 8px;
+        box-sizing: border-box;
+        border-radius: 20px;
+    }
+    textarea {
+        min-height: 150px;
+        resize: none;
+        }
+    }
 </style>
 </head>
 <body id="body">
-    <h1 id="estado"></h1>
+    <section id="cuenta">
     <form id="registro"><h2>Crear cuenta</h2>
         <input type="text" id="nombre" placeholder="tu nombre">
         <input type="email" id="mail" placeholder="tu email">
@@ -35,9 +68,10 @@
         <input type="email" placeholder="tu email" id="mailE">
         <input type="password" placeholder="tu contraseña" id="contraE">
         <input type="submit">
-    </form>
-    <div>
-    <textarea id="texto" cols="50" rows="5"></textarea>
+    </form></section>
+    <div id="ventana" style="display: none;">
+    <textarea id="texto" size="80%" cols="50" rows="5"></textarea>
+    <p><button id="cerrar">Cerrar</button></p>
     </div>
     <script type="module">
         var data;
@@ -53,6 +87,9 @@
     const mailEInput = document.getElementById("mailE");
     const contraEInput = document.getElementById("contraE");
     const texto = document.getElementById("texto");
+    const ventana = document.getElementById("ventana");
+    const cerrar = document.getElementById("cerrar");
+    const seccionCuenta = document.getElementById("cuenta");
     const firebaseConfig = {
         apiKey: "AIzaSyAiq27-ue3MeC2H4i1nNKyfJNvWCfmScaw",
         authDomain: "didia5.firebaseapp.com",
@@ -96,6 +133,7 @@
             data = docSnap.data();
             if (data.contra === contra) {
                 alert("Bienvenido " + data.nombre);
+                ventana.style.display = "flex";
                 Ctexto();
             } else {
                 alert("Contraseña incorrecta");
@@ -143,6 +181,9 @@
     texto.addEventListener("input", Itexto)
     registro.addEventListener("submit", crearCuenta);
     iniciars.addEventListener("submit", obtenerUsuario);
+    cerrar.addEventListener("click", function() {
+        ventana.style.display = "none";
+    });
     </script>
 </body>
 </html>
