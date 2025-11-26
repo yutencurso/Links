@@ -4,7 +4,7 @@
 <title>Mi cuenta</title>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 <style>
     body{
         font-family: 'Open Sans';
@@ -22,11 +22,17 @@
         border-radius: 20px;
         background-color: white;
     }
-    #ventana{
-        position: fixed;
-        z-index: 1000;
-        top: 10px;
-        left: 10px;
+    button:hover{
+        background-color: #f0f;
+        color: white;
+    }
+    input:hover{
+        background-color: #f0f;
+        color: white;
+    }
+    textarea:hover{
+        background-color: #f0f;
+        color: white;
     }
     @media (max-width: 600px) {
     body {
@@ -40,7 +46,7 @@
         padding: 10px;
         box-sizing: border-box;
     }
-    input,textarea,button {
+    input,textarea{
         width: 100%;
         max-width: 100%;
         font-size: 1em;
@@ -49,6 +55,15 @@
         margin-bottom: 8px;
         box-sizing: border-box;
         border-radius: 20px;
+        overflow: hidden;
+    }
+    #mensaje {
+        font-size: 0.9em;
+        padding: 10px;
+    }
+    button {
+        min-height: 48px;
+        margin-top: 15px;
     }
     textarea {
         min-height: 150px;
@@ -58,7 +73,7 @@
 </style>
 </head>
 <body id="body">
-    <section id="cuenta">
+    <div id="mensaje" style="font-size: 1em; display: none; position: fixed; z-index: 999;"></div>
     <form id="registro"><h2>Crear cuenta</h2>
         <input type="text" id="nombre" placeholder="tu nombre">
         <input type="email" id="mail" placeholder="tu email">
@@ -69,10 +84,10 @@
         <input type="email" placeholder="tu email" id="mailE">
         <input type="password" placeholder="tu contraseña" id="contraE">
         <input type="submit">
-    </form></section>
+    </form>
     <div id="ventana" style="display: none;">
     <textarea id="texto" size="80%" cols="50" rows="5"></textarea>
-    <p><button id="cerrar">Cerrar</button></p>
+    <button id="cerrar">Cerrar</button>
     </div>
     <script type="module">
         var data;
@@ -90,7 +105,7 @@
     const texto = document.getElementById("texto");
     const ventana = document.getElementById("ventana");
     const cerrar = document.getElementById("cerrar");
-    const seccionCuenta = document.getElementById("cuenta");
+    const avisoElem = document.getElementById("mensaje");
     const firebaseConfig = {
         apiKey: "AIzaSyAiq27-ue3MeC2H4i1nNKyfJNvWCfmScaw",
         authDomain: "didia5.firebaseapp.com",
@@ -117,10 +132,10 @@
             email: mail,
             nota: ""
         });
-        alert("Cuenta creada exitosamente para: " + nombre + ", ahora inicia sesión abajo");
+        aviso(`Cuenta creada exitosamente para: ${nombre}, ahora inicia sesión abajo`);
         } catch (e) {
-            console.error("Error al crear la cuenta: ", e);
-            alert("Hubo un error al crear la cuenta, espera un momento");
+            aviso(`Error al crear la cuenta: ${e}`);
+            aviso("Hubo un error al crear la cuenta, espera un momento");
         }
     }
 
@@ -133,14 +148,21 @@
         if (docSnap.exists()) {
             data = docSnap.data();
             if (data.contra === contra) {
-                alert("Bienvenido " + data.nombre);
-                ventana.style.display = "flex";
+                aviso("Bienvenido " + data.nombre);
+                registro.classList.add("animate__animated", "animate__bounceOutUp");
+                iniciars.classList.add("animate__animated", "animate__bounceOutUp");
+                ventana.classList.add("animate__animated", "animate__bounceInUp");
+                setTimeout(() => {
+                    registro.style.display = "none";
+                    iniciars.style.display = "none";
+                    ventana.style.display = "flex";
+                }, 1000);
                 Ctexto();
             } else {
-                alert("Contraseña incorrecta");
+                aviso("Contraseña incorrecta");
             }
         } else {
-            alert("Usuario no encontrado");
+            aviso("Usuario no encontrado");
         }
     }
     let unsubscribeFromNote;
@@ -168,7 +190,7 @@
     }
     async function Itexto() {
         if (!data || !data.email) {
-            alert("Inicia sesión para continuar");
+            aviso("Inicia sesión para continuar");
             return;
         }
         const mail = data.email;
@@ -179,11 +201,24 @@
         }, 
         { merge: true });
     }
+    function aviso(texto) {
+        avisoElem.classList.add("animate__animated", "animate__flipInY");
+        avisoElem.style.display = "block";
+        avisoElem.innerText = texto;
+        setTimeout(() => {
+            avisoElem.classList.remove("animate__animated", "animate__flipInY");
+            avisoElem.style.display = "none";
+        }, 3000);
+    }
     texto.addEventListener("input", Itexto)
     registro.addEventListener("submit", crearCuenta);
     iniciars.addEventListener("submit", obtenerUsuario);
     cerrar.addEventListener("click", function() {
         ventana.style.display = "none";
+        registro.style.display = "block";
+        iniciars.style.display = "block";
+        registro.classList.remove("animate__bounceOutUp");
+        iniciars.classList.remove("animate__bounceOutUp");
     });
     </script>
 </body>
