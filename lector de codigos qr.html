@@ -105,9 +105,9 @@
         function scanned(text) {
             if (text == "lucile25") {
                 body.style.backgroundColor = "green";
-                setInterval(2000, function(){
+                setTimeout(function(){
                     body.style.backgroundColor = "white";
-                });
+                }, 2000);
             }
             else{
                 alert(text)
