@@ -1,0 +1,118 @@
+<html>
+<head>
+<title>Lector de qr</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style>
+    body{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        background: #fff;
+        font-family: 'Open Sans';
+        background-color: white;
+    }
+    section{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        background: #fff;
+        font-family: 'Open Sans';
+        background-color: white;
+    }
+    video{
+        border-radius: 20px;
+    }
+    div{
+        border-radius: 20px;
+        box-shadow: 7px 7px 15px #101010;
+    }
+    button{
+        border: none;
+        background-image: linear-gradient(#f0f, #f00);
+        color: transparent;
+        background-clip: text;
+        font-size: 20px;
+    }
+    @media (max-width: 600px) {
+        body {
+            font-size: 1.1em;
+            line-height: 1.6;
+            padding: 10px;
+        }
+        div {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        input,textarea{
+            width: 100%;
+            max-width: 100%;
+            font-size: 1em;
+            padding: 12px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        #mensaje {
+            font-size: 0.9em;
+            padding: 10px;
+        }
+        button {
+            min-height: 48px;
+            margin-top: 15px;
+        }
+        textarea {
+            min-height: 150px;
+            resize: none;
+        }
+    }
+</style>
+</head>
+<body>
+    <section id="contenedor">
+    <button onclick="document.getElementById('contenedor').requestFullscreen()">⛶</button>
+    <h1>Montrez votre carte</h1>
+    <video id="preview" style="width: 80%;"></video>
+    </section>
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+    <script>
+        let body = document.body
+        let scanner = new Instascan.Scanner({
+            video: document.getElementById('preview'),
+            scanPeriod: 5,
+            mirror: true
+        });
+        scanner.addListener('scan', function (content) {
+            scanned(content)
+        });
+        Instascan.Camera.getCameras().then(function (cameras) {
+        if (cameras.length > 0) {
+            let frontal = cameras.find(cam => cam.name.toLowerCase().includes('front')) || cameras[0];
+            scanner.start(frontal);
+        } else {
+            alert("no camera")
+        }
+        }).catch(function (e) {
+            console.error(e);
+        });
+        function scanned(text) {
+            if (text == "lucile25") {
+                body.style.backgroundColor = "green";
+                setInterval(2000, function(){
+                    body.style.backgroundColor = "white";
+                });
+            }
+            else{
+                alert(text)
+            }
+        }
+    </script>
+</body>
+</html>
