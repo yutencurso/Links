@@ -83,7 +83,7 @@
     </section>
     <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
     <script>
-        let body = document.body
+        let body = document.getElementById("contenedor")
         let scanner = new Instascan.Scanner({
             video: document.getElementById('preview'),
             scanPeriod: 5,
@@ -107,7 +107,7 @@
                 body.style.backgroundColor = "green";
                 setTimeout(function(){
                     body.style.backgroundColor = "white";
-                }, 2000);
+                }, 500);
             }
             else{
                 alert(text)
