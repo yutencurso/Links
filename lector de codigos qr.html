@@ -78,12 +78,12 @@
 <body>
     <section id="contenedor">
     <button onclick="document.getElementById('contenedor').requestFullscreen()">⛶</button>
-    <h1 id="text">Montrez votre code QR</h1>
+    <h1 id="tex">Montrez votre code QR</h1>
     <video id="preview" style="width: 80%;"></video>
     </section>
     <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
     <script>
-        let text = document.getElementById("text")
+        let txt = document.getElementById("tex")
         let body = document.getElementById("contenedor")
         let scanner = new Instascan.Scanner({
             video: document.getElementById('preview'),
@@ -106,11 +106,11 @@
         function scanned(text) {
             if (text == "lucile25") {
                 body.style.backgroundColor = "green";
-                text.innerText = "OK"
+                txt.innerText = "OK"
                 document.body.style.backgroundColor = "green"
                 setTimeout(function(){
                     body.style.backgroundColor = "white";
-                    text.innerText = "Montrez votre code QR"
+                    txt.innerText = "Montrez votre code QR"
                     document.body.style.backgroundColor = "white"
                 }, 500);
             }
