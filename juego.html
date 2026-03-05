@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { margin: 0; overflow: hidden; background: #0077be; font-family: sans-serif; cursor: pointer; }
+        canvas { display: block; background: linear-gradient(#0093E9, #80D0C7); width: 100vw; height: 100vh; }
+        #score { position: absolute; top: 10px; left: 10px; color: white; font-size: 20px; text-shadow: 2px 2px 4px #000; pointer-events: none; }
+    </style>
+</head>
+<body onclick="window.focus()">
+
+<div id="score">Puntos: 0</div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const scoreElement = document.getElementById("score");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let score = 0;
+let gameOver = false;
+const turtle = { x: 50, y: canvas.height / 2, width: 50, height: 30, speed: 7 };
+const obstacles = [];
+const trashTypes = ['🥤', '🛍️', '🧴', '🥫'];
+const keys = {};
+
+// PREVENIR SCROLL: Esto evita que la página principal se mueva al presionar flechas
+window.addEventListener("keydown", e => {
+    if(["ArrowUp", "ArrowDown", "Space"].includes(e.code)) {
+        e.preventDefault();
+    }
+    keys[e.code] = true;
+});
+window.addEventListener("keyup", e => keys[e.code] = false);
+
+function spawnObstacle() {
+    obstacles.push({
+        x: canvas.width,
+        y: Math.random() * (canvas.height - 40),
+        size: 35,
+        emoji: trashTypes[Math.floor(Math.random() * trashTypes.length)],
+        speed: 4 + Math.random() * 4
+    });
+}
+
+function update() {
+    if (gameOver) return;
+    if (keys["ArrowUp"] && turtle.y > 0) turtle.y -= turtle.speed;
+    if (keys["ArrowDown"] && turtle.y < canvas.height - turtle.height) turtle.y += turtle.speed;
+
+    if (Math.random() < 0.02) spawnObstacle();
+
+    obstacles.forEach((obs, i) => {
+        obs.x -= obs.speed;
+        if (turtle.x < obs.x + obs.size && turtle.x + 40 > obs.x &&
+            turtle.y < obs.y + obs.size && turtle.y + 40 > obs.y) {
+            gameOver = true;
+            alert("¡Cuidado con el plástico! Puntos: " + score);
+            location.reload();
+        }
+        if (obs.x + obs.size < 0) { obstacles.splice(i, 1); score++; scoreElement.innerText = `Puntos: ${score}`; }
+    });
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = "40px Arial";
+    ctx.fillText("🐢", turtle.x, turtle.y + 30);
+    obstacles.forEach(obs => {
+        ctx.font = "30px Arial";
+        ctx.fillText(obs.emoji, obs.x, obs.y + obs.size);
+    });
+    requestAnimationFrame(() => { update(); draw(); });
+}
+draw();
+</script>
+</body>
+</html>
