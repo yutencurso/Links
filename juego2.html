@@ -3,116 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body { margin: 0; overflow: hidden; background: #00b4d8; font-family: sans-serif; cursor: crosshair; }
-        canvas { display: block; background: radial-gradient(circle, #48cae4, #0077b6); }
-        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: white; pointer-events: none; }
-        .info { font-size: 20px; text-shadow: 1px 1px 4px rgba(0,0,0,0.3); }
+        body { margin: 0; overflow: hidden; background: #a2d2ff; cursor: pointer; font-family: sans-serif; }
+        canvas { display: block; background: linear-gradient(#caf0f8, #90e0ef, #00b4d8); }
+        #msg { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #0077b6; font-weight: bold; pointer-events: none; }
     </style>
 </head>
 <body onclick="window.focus()">
 
-<div id="ui">
-    <div class="info">Ballena a salvo: <span id="score">0</span>%</div>
-    <div style="font-size: 14px; opacity: 0.8;">¡Haz clic en las manchas negras (🕳️) para eliminarlas!</div>
-</div>
-<canvas id="whaleCanvas"></canvas>
+<div id="msg">¡Toca el plástico para limpiar el agua! ✨</div>
+<canvas id="easyCanvas"></canvas>
 
 <script>
-const canvas = document.getElementById("whaleCanvas");
+const canvas = document.getElementById("easyCanvas");
 const ctx = canvas.getContext("2d");
-const scoreEl = document.getElementById("score");
-
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let score = 100;
-let savedCount = 0;
-let gameOver = false;
-const spots = [];
+let items = [];
+let fish = [];
+const trashEmojis = ['🧴', '🛍️', '🥤'];
+const fishEmojis = ['🐠', '🐟', '🐡', '✨'];
 
-// La ballena está tranquila en el centro
-const whale = {
-    x: canvas.width / 2,
-    y: canvas.height / 2,
-    size: 80
-};
-
-// Detectar clics para limpiar
-canvas.addEventListener("mousedown", (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    for (let i = spots.length - 1; i >= 0; i--) {
-        const s = spots[i];
-        const dist = Math.hypot(mouseX - s.x, mouseY - s.y);
-        if (dist < 40) { // Margen de clic generoso
-            spots.splice(i, 1);
-            savedCount++;
-        }
-    }
-});
-
-function spawnSpot() {
-    if (Math.random() < 0.015) { // Aparecen muy lentamente
-        const side = Math.floor(Math.random() * 4);
-        let x, y;
-        // Aparecen desde los bordes y van al centro
-        if(side === 0) { x = Math.random() * canvas.width; y = -20; }
-        else if(side === 1) { x = Math.random() * canvas.width; y = canvas.height + 20; }
-        else if(side === 2) { x = -20; y = Math.random() * canvas.height; }
-        else { x = canvas.width + 20; y = Math.random() * canvas.height; }
-
-        spots.push({ x, y, speed: 0.8 + Math.random() * 0.5 });
+// Crear basura lenta y grande
+function createTrash() {
+    if (Math.random() < 0.03) {
+        items.push({
+            x: Math.random() * (canvas.width - 50),
+            y: canvas.height + 50,
+            emoji: trashEmojis[Math.floor(Math.random() * trashEmojis.length)],
+            speed: 0.5 + Math.random() * 1
+        });
     }
 }
 
-function update() {
-    if (gameOver) return;
+// Al hacer clic: Limpiar y crear un pez
+canvas.addEventListener("mousedown", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
 
-    spawnSpot();
-
-    spots.forEach((s, i) => {
-        // Mover hacia la ballena
-        const angle = Math.atan2(whale.y - s.y, whale.x - s.x);
-        s.x += Math.cos(angle) * s.speed;
-        s.y += Math.sin(angle) * s.speed;
-
-        // Colisión con la ballena
-        const dist = Math.hypot(whale.x - s.x, whale.y - s.y);
-        if (dist < 50) {
-            spots.splice(i, 1);
-            score -= 10;
-            scoreEl.innerText = score;
-            if (score <= 0) {
-                gameOver = true;
-                alert("La ballena necesita un mar más limpio. ¡Lo hiciste bien!");
-                location.reload();
-            }
+    items.forEach((item, i) => {
+        const dist = Math.hypot(mx - item.x, my - item.y);
+        if (dist < 60) { // Margen de error enorme (muy fácil)
+            // El plástico se convierte en pez
+            fish.push({ x: item.x, y: item.y, emoji: fishEmojis[Math.floor(Math.random() * fishEmojis.length)], vx: (Math.random() - 0.5) * 4, vy: -2 });
+            items.splice(i, 1);
         }
     });
+});
+
+function update() {
+    createTrash();
+    
+    // Subir basura
+    items.forEach(item => item.y -= item.speed);
+    
+    // Movimiento de los peces rescatados
+    fish.forEach((f, i) => {
+        f.x += f.vx;
+        f.y += f.vy;
+        if (f.y < -50) fish.splice(i, 1);
+    });
+
+    // Limpiar basura que se escapa (sin penalización)
+    items = items.filter(item => item.y > -50);
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.font = "50px Arial";
+    items.forEach(item => ctx.fillText(item.emoji, item.x, item.y));
+    
+    ctx.font = "40px Arial";
+    fish.forEach(f => ctx.fillText(f.emoji, f.x, f.y));
 
-    // Dibujar Ballena
-    ctx.font = "80px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("🐋", whale.x, whale.y + 30);
-
-    // Dibujar Manchas de petróleo
-    spots.forEach(s => {
-        ctx.font = "40px Arial";
-        ctx.fillText("🕳️", s.x, s.y + 15);
-    });
-
-    if (!gameOver) {
-        update();
-        requestAnimationFrame(draw);
-    }
+    requestAnimationFrame(() => { update(); draw(); });
 }
-
 draw();
 </script>
 </body>
