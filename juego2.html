@@ -3,89 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body { margin: 0; overflow: hidden; background: #0077b6; font-family: 'Segoe UI', sans-serif; cursor: pointer; }
-        canvas { display: block; background: linear-gradient(#90e0ef, #0077b6); }
-        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: white; pointer-events: none; }
-        .goal { font-size: 24px; font-weight: bold; text-shadow: 2px 2px 5px rgba(0,0,0,0.3); }
+        body { margin: 0; overflow: hidden; background: #0077b6; font-family: 'Segoe UI', sans-serif; cursor: crosshair; }
+        canvas { display: block; background: linear-gradient(to bottom, #90e0ef, #0077b6); width: 100vw; height: 100vh; }
+        #ui { 
+            position: absolute; top: 10px; width: 100%; 
+            display: flex; justify-content: space-between; padding: 0 40px;
+            box-sizing: border-box; color: white; pointer-events: none; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-size: 20px;
+        }
     </style>
 </head>
 <body onclick="window.focus()">
 
 <div id="ui">
-    <div id="text" class="goal">Objetivo: Limpiar 10 plásticos (0/10)</div>
+    <div id="status">Estado del Coral: 🥀</div>
+    <div id="counter">Plásticos retirados: 0 / 5</div>
 </div>
 <canvas id="coralCanvas"></canvas>
 
 <script>
 const canvas = document.getElementById("coralCanvas");
 const ctx = canvas.getContext("2d");
+
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let count = 0;
-let currentItem = null;
-const target = 10;
+let score = 0;
 let win = false;
+let currentTrash = null;
+const target = 5;
 
-// Crea un solo objeto a la vez
-function spawnItem() {
-    if (!currentItem && !win) {
-        currentItem = {
-            x: 50 + Math.random() * (canvas.width - 100),
-            y: -50,
-            emoji: ['🥤', '🛍️', '🧴'][Math.floor(Math.random() * 3)],
-            speed: 1.5 // Muy lento
+// Partículas de corriente (burbujas horizontales)
+const bubbles = Array.from({length: 30}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    speed: 0.5 + Math.random() * 1.5,
+    size: 2 + Math.random() * 4
+}));
+
+function spawnTrash() {
+    if (!currentTrash && !win) {
+        currentTrash = {
+            x: canvas.width + 50,
+            y: 50 + Math.random() * (canvas.height - 150),
+            emoji: ['🥤', '🛍️', '🧴', '🥫'][Math.floor(Math.random() * 4)],
+            speed: 1.2,
+            rot: 0
         };
     }
 }
 
 canvas.addEventListener("mousedown", (e) => {
-    if (!currentItem || win) return;
+    if (!currentTrash || win) return;
 
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
 
-    // Área de clic gigante (100px) para que sea imposible fallar
-    const dist = Math.hypot(mx - currentItem.x, my - currentItem.y);
-    if (dist < 100) {
-        count++;
-        currentItem = null; // Desaparece y espera al siguiente
-        document.getElementById("text").innerText = `Objetivo: Limpiar 10 plásticos (${count}/10)`;
+    // Área de impacto muy generosa
+    const dist = Math.hypot(mx - currentTrash.x, my - currentTrash.y);
+    if (dist < 80) {
+        score++;
+        currentTrash = null;
+        document.getElementById("counter").innerText = `Plásticos retirados: ${score} / ${target}`;
         
-        if (count >= target) {
+        if (score >= target) {
             win = true;
-            document.getElementById("text").innerHTML = "¡GRACIAS! <br> El coral está a salvo 🪸✨";
+            document.getElementById("status").innerText = "Estado del Coral: 🪸 ¡SANO!";
         }
     }
 });
 
 function update() {
+    // Mover burbujas (corriente de derecha a izquierda)
+    bubbles.forEach(b => {
+        b.x -= b.speed;
+        if (b.x < -10) b.x = canvas.width + 10;
+    });
+
     if (win) return;
-    spawnItem();
-    if (currentItem) {
-        currentItem.y += currentItem.speed;
-        // Si se sale, lo reseteamos para que siempre haya uno en pantalla
-        if (currentItem.y > canvas.height + 50) currentItem = null;
+
+    spawnTrash();
+
+    if (currentTrash) {
+        currentTrash.x -= currentTrash.speed;
+        currentTrash.rot += 0.01;
+        // Si se sale de la pantalla por la izquierda, vuelve a aparecer por la derecha
+        if (currentTrash.x < -50) currentTrash = null;
     }
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // El Coral (objetivo visual)
-    ctx.font = win ? "120px Arial" : "80px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(win ? "🪸" : "🥀", canvas.width / 2, canvas.height - 50);
+    // 1. Dibujar burbujas de fondo
+    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+    bubbles.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
 
-    // El objeto actual
-    if (currentItem) {
-        ctx.font = "60px Arial";
-        ctx.fillText(currentItem.emoji, currentItem.x, currentItem.y);
+    // 2. El Coral (estático a la izquierda)
+    ctx.font = win ? "100px Arial" : "70px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(win ? "🪸" : "🥀", 100, canvas.height - 60);
+
+    // 3. Basura actual
+    if (currentTrash) {
+        ctx.save();
+        ctx.translate(currentTrash.x, currentTrash.y);
+        ctx.rotate(currentTrash.rot);
+        ctx.font = "50px Arial";
+        ctx.fillText(currentTrash.emoji, 0, 0);
+        ctx.restore();
     }
 
-    requestAnimationFrame(() => { update(); draw(); });
+    if (win) {
+        ctx.fillStyle = "white";
+        ctx.font = "bold 30px Arial";
+        ctx.fillText("¡Gracias por limpiar el océano! ✨", canvas.width / 2, canvas.height / 2);
+    }
+
+    requestAnimationFrame(() => {
+        update();
+        draw();
+    });
 }
+
+// Reajustar si cambian el tamaño de la ventana/iframe
+window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+
 draw();
 </script>
 </body>
