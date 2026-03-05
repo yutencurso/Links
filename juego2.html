@@ -3,80 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body { margin: 0; overflow: hidden; background: #a2d2ff; cursor: pointer; font-family: sans-serif; }
-        canvas { display: block; background: linear-gradient(#caf0f8, #90e0ef, #00b4d8); }
-        #msg { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #0077b6; font-weight: bold; pointer-events: none; }
+        body { margin: 0; overflow: hidden; background: #0077b6; font-family: 'Segoe UI', sans-serif; cursor: pointer; }
+        canvas { display: block; background: linear-gradient(#90e0ef, #0077b6); }
+        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: white; pointer-events: none; }
+        .goal { font-size: 24px; font-weight: bold; text-shadow: 2px 2px 5px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body onclick="window.focus()">
 
-<div id="msg">¡Toca el plástico para limpiar el agua! ✨</div>
-<canvas id="easyCanvas"></canvas>
+<div id="ui">
+    <div id="text" class="goal">Objetivo: Limpiar 10 plásticos (0/10)</div>
+</div>
+<canvas id="coralCanvas"></canvas>
 
 <script>
-const canvas = document.getElementById("easyCanvas");
+const canvas = document.getElementById("coralCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let items = [];
-let fish = [];
-const trashEmojis = ['🧴', '🛍️', '🥤'];
-const fishEmojis = ['🐠', '🐟', '🐡', '✨'];
+let count = 0;
+let currentItem = null;
+const target = 10;
+let win = false;
 
-// Crear basura lenta y grande
-function createTrash() {
-    if (Math.random() < 0.03) {
-        items.push({
-            x: Math.random() * (canvas.width - 50),
-            y: canvas.height + 50,
-            emoji: trashEmojis[Math.floor(Math.random() * trashEmojis.length)],
-            speed: 0.5 + Math.random() * 1
-        });
+// Crea un solo objeto a la vez
+function spawnItem() {
+    if (!currentItem && !win) {
+        currentItem = {
+            x: 50 + Math.random() * (canvas.width - 100),
+            y: -50,
+            emoji: ['🥤', '🛍️', '🧴'][Math.floor(Math.random() * 3)],
+            speed: 1.5 // Muy lento
+        };
     }
 }
 
-// Al hacer clic: Limpiar y crear un pez
 canvas.addEventListener("mousedown", (e) => {
+    if (!currentItem || win) return;
+
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
 
-    items.forEach((item, i) => {
-        const dist = Math.hypot(mx - item.x, my - item.y);
-        if (dist < 60) { // Margen de error enorme (muy fácil)
-            // El plástico se convierte en pez
-            fish.push({ x: item.x, y: item.y, emoji: fishEmojis[Math.floor(Math.random() * fishEmojis.length)], vx: (Math.random() - 0.5) * 4, vy: -2 });
-            items.splice(i, 1);
+    // Área de clic gigante (100px) para que sea imposible fallar
+    const dist = Math.hypot(mx - currentItem.x, my - currentItem.y);
+    if (dist < 100) {
+        count++;
+        currentItem = null; // Desaparece y espera al siguiente
+        document.getElementById("text").innerText = `Objetivo: Limpiar 10 plásticos (${count}/10)`;
+        
+        if (count >= target) {
+            win = true;
+            document.getElementById("text").innerHTML = "¡GRACIAS! <br> El coral está a salvo 🪸✨";
         }
-    });
+    }
 });
 
 function update() {
-    createTrash();
-    
-    // Subir basura
-    items.forEach(item => item.y -= item.speed);
-    
-    // Movimiento de los peces rescatados
-    fish.forEach((f, i) => {
-        f.x += f.vx;
-        f.y += f.vy;
-        if (f.y < -50) fish.splice(i, 1);
-    });
-
-    // Limpiar basura que se escapa (sin penalización)
-    items = items.filter(item => item.y > -50);
+    if (win) return;
+    spawnItem();
+    if (currentItem) {
+        currentItem.y += currentItem.speed;
+        // Si se sale, lo reseteamos para que siempre haya uno en pantalla
+        if (currentItem.y > canvas.height + 50) currentItem = null;
+    }
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    ctx.font = "50px Arial";
-    items.forEach(item => ctx.fillText(item.emoji, item.x, item.y));
-    
-    ctx.font = "40px Arial";
-    fish.forEach(f => ctx.fillText(f.emoji, f.x, f.y));
+    // El Coral (objetivo visual)
+    ctx.font = win ? "120px Arial" : "80px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(win ? "🪸" : "🥀", canvas.width / 2, canvas.height - 50);
+
+    // El objeto actual
+    if (currentItem) {
+        ctx.font = "60px Arial";
+        ctx.fillText(currentItem.emoji, currentItem.x, currentItem.y);
+    }
 
     requestAnimationFrame(() => { update(); draw(); });
 }
