@@ -3,127 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body { margin: 0; overflow: hidden; background: #0077b6; font-family: 'Segoe UI', sans-serif; cursor: crosshair; }
-        canvas { display: block; background: linear-gradient(to bottom, #90e0ef, #0077b6); width: 100vw; height: 100vh; }
+        body { margin: 0; overflow: hidden; background: #005f73; font-family: 'Arial', sans-serif; cursor: none; }
+        canvas { display: block; background: linear-gradient(to right, #0a9396, #005f73); }
         #ui { 
             position: absolute; top: 10px; width: 100%; 
-            display: flex; justify-content: space-between; padding: 0 40px;
-            box-sizing: border-box; color: white; pointer-events: none; 
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3); font-size: 20px;
+            display: flex; justify-content: space-around; 
+            color: #e9d8a6; font-weight: bold; pointer-events: none; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5); font-size: 20px;
         }
     </style>
 </head>
 <body onclick="window.focus()">
 
 <div id="ui">
-    <div id="status">Estado del Coral: 🥀</div>
-    <div id="counter">Plásticos retirados: 0 / 5</div>
+    <div>Vidas: <span id="lives">3</span></div>
+    <div>Rescatados: <span id="score">0</span></div>
 </div>
-<canvas id="coralCanvas"></canvas>
+<canvas id="rescueCanvas"></canvas>
 
 <script>
-const canvas = document.getElementById("coralCanvas");
+const canvas = document.getElementById("rescueCanvas");
 const ctx = canvas.getContext("2d");
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let score = 0;
-let win = false;
-let currentTrash = null;
-const target = 5;
+let lives = 3;
+let gameOver = false;
+let mouseY = canvas.height / 2;
 
-// Partículas de corriente (burbujas horizontales)
-const bubbles = Array.from({length: 30}, () => ({
+const bubbles = Array.from({length: 40}, () => ({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height,
-    speed: 0.5 + Math.random() * 1.5,
-    size: 2 + Math.random() * 4
+    speed: 1 + Math.random() * 2,
+    size: Math.random() * 5
 }));
 
-function spawnTrash() {
-    if (!currentTrash && !win) {
-        currentTrash = {
+const entities = [];
+const dolphin = { x: 100, y: canvas.height / 2, size: 60 };
+
+// Seguimiento del ratón/toque
+window.addEventListener("mousemove", e => mouseY = e.clientY);
+window.addEventListener("touchmove", e => mouseY = e.touches[0].clientY);
+
+function spawnEntity() {
+    if (gameOver) return;
+    if (Math.random() < 0.03) { // Frecuencia moderada
+        const isGood = Math.random() > 0.4;
+        entities.push({
             x: canvas.width + 50,
-            y: 50 + Math.random() * (canvas.height - 150),
-            emoji: ['🥤', '🛍️', '🧴', '🥫'][Math.floor(Math.random() * 4)],
-            speed: 1.2,
-            rot: 0
-        };
+            y: 50 + Math.random() * (canvas.height - 100),
+            type: isGood ? 'good' : 'bad',
+            emoji: isGood ? ['🐢', '🐠', '🐟'][Math.floor(Math.random()*3)] : '🕸️',
+            speed: 3 + Math.random() * 2
+        });
     }
 }
 
-canvas.addEventListener("mousedown", (e) => {
-    if (!currentTrash || win) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-
-    // Área de impacto muy generosa
-    const dist = Math.hypot(mx - currentTrash.x, my - currentTrash.y);
-    if (dist < 80) {
-        score++;
-        currentTrash = null;
-        document.getElementById("counter").innerText = `Plásticos retirados: ${score} / ${target}`;
-        
-        if (score >= target) {
-            win = true;
-            document.getElementById("status").innerText = "Estado del Coral: 🪸 ¡SANO!";
-        }
-    }
-});
-
 function update() {
-    // Mover burbujas (corriente de derecha a izquierda)
+    if (gameOver) return;
+
+    // Movimiento suave del delfín (reacción de agua)
+    dolphin.y += (mouseY - dolphin.y) * 0.1;
+
+    // Burbujas
     bubbles.forEach(b => {
         b.x -= b.speed;
         if (b.x < -10) b.x = canvas.width + 10;
     });
 
-    if (win) return;
+    spawnEntity();
 
-    spawnTrash();
+    entities.forEach((ent, i) => {
+        ent.x -= ent.speed;
 
-    if (currentTrash) {
-        currentTrash.x -= currentTrash.speed;
-        currentTrash.rot += 0.01;
-        // Si se sale de la pantalla por la izquierda, vuelve a aparecer por la derecha
-        if (currentTrash.x < -50) currentTrash = null;
-    }
+        // Colisión
+        const dist = Math.hypot(dolphin.x - ent.x, dolphin.y - ent.y);
+        if (dist < 50) {
+            if (ent.type === 'good') {
+                score++;
+                document.getElementById("score").innerText = score;
+            } else {
+                lives--;
+                document.getElementById("lives").innerText = lives;
+                if (lives <= 0) endGame();
+            }
+            entities.splice(i, 1);
+        }
+
+        if (ent.x < -50) entities.splice(i, 1);
+    });
+}
+
+function endGame() {
+    gameOver = true;
+    setTimeout(() => {
+        alert("¡Misión cumplida! Rescataste a " + score + " animales.");
+        location.reload();
+    }, 100);
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // 1. Dibujar burbujas de fondo
-    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+
+    // Burbujas
+    ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
     bubbles.forEach(b => {
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
         ctx.fill();
     });
 
-    // 2. El Coral (estático a la izquierda)
-    ctx.font = win ? "100px Arial" : "70px Arial";
+    // Delfín
+    ctx.font = "60px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(win ? "🪸" : "🥀", 100, canvas.height - 60);
+    ctx.fillText("🐬", dolphin.x, dolphin.y + 20);
 
-    // 3. Basura actual
-    if (currentTrash) {
-        ctx.save();
-        ctx.translate(currentTrash.x, currentTrash.y);
-        ctx.rotate(currentTrash.rot);
-        ctx.font = "50px Arial";
-        ctx.fillText(currentTrash.emoji, 0, 0);
-        ctx.restore();
-    }
-
-    if (win) {
-        ctx.fillStyle = "white";
-        ctx.font = "bold 30px Arial";
-        ctx.fillText("¡Gracias por limpiar el océano! ✨", canvas.width / 2, canvas.height / 2);
-    }
+    // Entidades
+    entities.forEach(ent => {
+        ctx.font = "45px Arial";
+        ctx.fillText(ent.emoji, ent.x, ent.y + 15);
+    });
 
     requestAnimationFrame(() => {
         update();
@@ -131,7 +132,6 @@ function draw() {
     });
 }
 
-// Reajustar si cambian el tamaño de la ventana/iframe
 window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
