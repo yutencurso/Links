@@ -3,136 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        body { margin: 0; overflow: hidden; background: #001219; font-family: 'Courier New', Courier, monospace; cursor: crosshair; }
-        canvas { display: block; background: linear-gradient(#001219, #005f73); }
-        #ui { position: absolute; top: 15px; width: 100%; text-align: center; color: #94d2bd; pointer-events: none; }
-        .stat { margin: 0 20px; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; }
+        body { margin: 0; overflow: hidden; background: #00b4d8; font-family: sans-serif; cursor: crosshair; }
+        canvas { display: block; background: radial-gradient(circle, #48cae4, #0077b6); }
+        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: white; pointer-events: none; }
+        .info { font-size: 20px; text-shadow: 1px 1px 4px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body onclick="window.focus()">
 
 <div id="ui">
-    <span class="stat">Oxígeno: <span id="health">100</span>%</span>
-    <span class="stat">Residuos: <span id="score">0</span></span>
+    <div class="info">Ballena a salvo: <span id="score">0</span>%</div>
+    <div style="font-size: 14px; opacity: 0.8;">¡Haz clic en las manchas negras (🕳️) para eliminarlas!</div>
 </div>
-<canvas id="oceanCanvas"></canvas>
+<canvas id="whaleCanvas"></canvas>
 
 <script>
-const canvas = document.getElementById("oceanCanvas");
+const canvas = document.getElementById("whaleCanvas");
 const ctx = canvas.getContext("2d");
+const scoreEl = document.getElementById("score");
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let score = 0;
-let health = 100;
+let score = 100;
+let savedCount = 0;
 let gameOver = false;
-let mouseX = canvas.width / 2;
+const spots = [];
 
-// Partículas de agua (efecto visual)
-const particles = Array.from({length: 50}, () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    speed: 0.5 + Math.random()
-}));
+// La ballena está tranquila en el centro
+const whale = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    size: 80
+};
 
-const crab = { x: canvas.width / 2, y: canvas.height - 60, w: 60, h: 40 };
-const items = [];
-const trashEmojis = ['🧴', '🧤', '🚬', '🥤', '🕸️'];
-
-// Control por ratón/movimiento
-window.addEventListener("mousemove", e => {
+// Detectar clics para limpiar
+canvas.addEventListener("mousedown", (e) => {
     const rect = canvas.getBoundingClientRect();
-    mouseX = e.clientX - rect.left;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    for (let i = spots.length - 1; i >= 0; i--) {
+        const s = spots[i];
+        const dist = Math.hypot(mouseX - s.x, mouseY - s.y);
+        if (dist < 40) { // Margen de clic generoso
+            spots.splice(i, 1);
+            savedCount++;
+        }
+    }
 });
 
-function createTrash() {
-    if (Math.random() < 0.02) {
-        items.push({
-            x: Math.random() * canvas.width,
-            y: -50,
-            emoji: trashEmojis[Math.floor(Math.random() * trashEmojis.length)],
-            speed: 1.5 + Math.random() * 2,
-            drift: Math.sin(Math.random() * Math.PI) * 1 // Balanceo suave
-        });
+function spawnSpot() {
+    if (Math.random() < 0.015) { // Aparecen muy lentamente
+        const side = Math.floor(Math.random() * 4);
+        let x, y;
+        // Aparecen desde los bordes y van al centro
+        if(side === 0) { x = Math.random() * canvas.width; y = -20; }
+        else if(side === 1) { x = Math.random() * canvas.width; y = canvas.height + 20; }
+        else if(side === 2) { x = -20; y = Math.random() * canvas.height; }
+        else { x = canvas.width + 20; y = Math.random() * canvas.height; }
+
+        spots.push({ x, y, speed: 0.8 + Math.random() * 0.5 });
     }
 }
 
 function update() {
     if (gameOver) return;
 
-    // Suavizado del movimiento del cangrejo (Lerp)
-    crab.x += (mouseX - crab.x) * 0.1;
+    spawnSpot();
 
-    // Limitar bordes
-    if (crab.x < 30) crab.x = 30;
-    if (crab.x > canvas.width - 30) crab.x = canvas.width - 30;
+    spots.forEach((s, i) => {
+        // Mover hacia la ballena
+        const angle = Math.atan2(whale.y - s.y, whale.x - s.x);
+        s.x += Math.cos(angle) * s.speed;
+        s.y += Math.sin(angle) * s.speed;
 
-    // Actualizar basura
-    items.forEach((item, i) => {
-        item.y += item.speed;
-        item.x += Math.sin(item.y / 50) * 0.5; // Efecto de corriente
-
-        // Colisión con el cangrejo (recolectar)
-        const dx = crab.x - item.x;
-        const dy = crab.y - item.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < 40) {
-            items.splice(i, 1);
-            score += 1;
-            if(health < 100) health += 2;
-            document.getElementById("score").innerText = score;
-        } 
-        // Si toca el fondo, resta salud (el mar se contamina)
-        else if (item.y > canvas.height) {
-            items.splice(i, 1);
-            health -= 15;
-            document.getElementById("health").innerText = Math.max(0, health);
-            if (health <= 0) endGame();
+        // Colisión con la ballena
+        const dist = Math.hypot(whale.x - s.x, whale.y - s.y);
+        if (dist < 50) {
+            spots.splice(i, 1);
+            score -= 10;
+            scoreEl.innerText = score;
+            if (score <= 0) {
+                gameOver = true;
+                alert("La ballena necesita un mar más limpio. ¡Lo hiciste bien!");
+                location.reload();
+            }
         }
     });
-
-    particles.forEach(p => {
-        p.y += p.speed;
-        if (p.y > canvas.height) p.y = 0;
-    });
-
-    createTrash();
-}
-
-function endGame() {
-    gameOver = true;
-    alert("¡El océano está demasiado contaminado! Limpiaste " + score + " residuos.");
-    location.reload();
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Dibujar burbujas/partículas
-    ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-    particles.forEach(p => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
-        ctx.fill();
-    });
-
-    // Dibujar Cangrejo
-    ctx.font = "50px Arial";
+    // Dibujar Ballena
+    ctx.font = "80px Arial";
     ctx.textAlign = "center";
-    ctx.fillText("🦀", crab.x, crab.y);
+    ctx.fillText("🐋", whale.x, whale.y + 30);
 
-    // Dibujar Basura
-    items.forEach(item => {
-        ctx.font = "30px Arial";
-        ctx.fillText(item.emoji, item.x, item.y);
+    // Dibujar Manchas de petróleo
+    spots.forEach(s => {
+        ctx.font = "40px Arial";
+        ctx.fillText("🕳️", s.x, s.y + 15);
     });
 
-    requestAnimationFrame(() => {
+    if (!gameOver) {
         update();
-        draw();
-    });
+        requestAnimationFrame(draw);
+    }
 }
 
 draw();
